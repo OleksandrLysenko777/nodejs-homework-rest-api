@@ -2,7 +2,7 @@ const Joi = require("joi");
 
 function validateContact(req, res, next) {
   if (!req.body || Object.keys(req.body).length === 0) {
-    return res.status(400).json({ message: "missing fields" });
+    return res.status(400).json({ message: "missing field favorite" });
   }
 
   let schema;
