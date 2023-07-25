@@ -13,7 +13,7 @@ router.post(
 );
 router.delete("/:contactId", validateId, contactsController.removeContact);
 router.put(
-  "/:contactId",
+  "/:contactId", validateId,
   contactsValidation.validateContact,
   contactsController.updateContact
 );
