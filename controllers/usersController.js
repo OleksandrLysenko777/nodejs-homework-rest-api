@@ -47,7 +47,13 @@ const usersController = {
           expiresIn: "7d",
         });
 
-        res.status(200).json(token);
+        res.status(200).json({
+        token,
+        user: {
+          email: user.email,
+          subscription: user.subscription,
+        },
+      });
       } else {
         return res.status(401).json({ message: "Email or password is wrong" });
       }

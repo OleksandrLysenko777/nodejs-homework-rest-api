@@ -34,9 +34,9 @@ app.use(express.json());
 
 const authMiddleware = require("./validations/authMiddleware");
 
-app.use("/api/contacts", authMiddleware, contactsRouter);
-app.use("/api/contacts", authMiddleware, contactsFavoriteRouter);
-app.use("/api/users", usersRouter);
+app.use("/api/contacts", authMiddleware, contactsRouter, contactsFavoriteRouter);
+
+app.use("/users", usersRouter);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Not found" });
