@@ -5,7 +5,6 @@ const logger = require("morgan");
 const cors = require("cors");
 const contactsRouter = require("./routes/api/contacts");
 const usersRouter = require("./routes/api/users");
-const contactsFavoriteRouter = require("./routes/api/contacts");
 
 const mongoose = require("mongoose");
 
@@ -34,7 +33,7 @@ app.use(express.json());
 
 const authMiddleware = require("./validations/authMiddleware");
 
-app.use("/api/contacts", authMiddleware, contactsRouter, contactsFavoriteRouter);
+app.use("/api/contacts", authMiddleware, contactsRouter);
 
 app.use("/users", usersRouter);
 
