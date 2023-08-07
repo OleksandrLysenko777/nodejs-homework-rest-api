@@ -3,7 +3,7 @@ const router = express.Router();
 const usersController = require("../../controllers/usersController");
 const usersValidation = require("../../validations/usersValidation");
 const authMiddleware = require("../../validations/authMiddleware");
-const checkAuthMiddleware = require("../../validations/checkAuthMiddleware");
+
 router.post(
   "/register",
   usersValidation.validateUserRegister,
@@ -11,5 +11,5 @@ router.post(
 );
 router.post("/login", usersValidation.validateUserLogin, usersController.login);
 router.post("/logout", authMiddleware, usersController.logoutUser);
-router.get("/current", checkAuthMiddleware, usersController.getCurrentUser);
+router.get("/current", authMiddleware, usersController.getCurrentUser);
 module.exports = router;
