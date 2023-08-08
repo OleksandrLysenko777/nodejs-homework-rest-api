@@ -13,10 +13,21 @@ router.post(
 );
 router.delete("/:contactId", validateId, contactsController.removeContact);
 router.put(
-  "/:contactId", validateId,
+  "/:contactId",
+  validateId,
   contactsValidation.validateContact,
   contactsController.updateContact
 );
-router.patch("/:contactId/favorite", validateId, contactsValidation.validateContact, contactsController.updateContactFavorite);
-
+router.patch(
+  "/:contactId/favorite",
+  validateId,
+  contactsValidation.validateContact,
+  contactsController.updateContact
+);
+router.patch(
+  "/:contactId",
+  validateId,
+  contactsValidation.validateContact,
+  contactsController.updateContact
+);
 module.exports = router;

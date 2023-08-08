@@ -1,0 +1,15 @@
+const express = require("express");
+const router = express.Router();
+const usersController = require("../../controllers/usersController");
+const usersValidation = require("../../validations/usersValidation");
+const authMiddleware = require("../../validations/authMiddleware");
+
+router.post(
+  "/register",
+  usersValidation.validateUserRegister,
+  usersController.register
+);
+router.post("/login", usersValidation.validateUserLogin, usersController.login);
+router.post("/logout", authMiddleware, usersController.logoutUser);
+router.get("/current", authMiddleware, usersController.getCurrentUser);
+module.exports = router;
