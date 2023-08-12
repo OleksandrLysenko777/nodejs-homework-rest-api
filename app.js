@@ -5,6 +5,7 @@ const logger = require("morgan");
 const cors = require("cors");
 const contactsRouter = require("./routes/api/contacts");
 const usersRouter = require("./routes/api/users");
+const path = require("path");
 
 const mongoose = require("mongoose");
 
@@ -36,6 +37,7 @@ const authMiddleware = require("./validations/authMiddleware");
 app.use("/api/contacts", authMiddleware, contactsRouter);
 
 app.use("/users", usersRouter);
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use((req, res) => {
   res.status(404).json({ message: "Not found" });

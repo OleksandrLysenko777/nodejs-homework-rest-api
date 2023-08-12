@@ -1,6 +1,8 @@
 const { User, findUserByEmail, findUserById } = require("../models/userModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const jimp = require("jimp");
+const path = require("path");
 
 const usersController = {
   register: async (req, res, next) => {
@@ -20,6 +22,7 @@ const usersController = {
       const userWithoutPassword = {
         email: newUser.email,
         subscription: newUser.subscription,
+        avatarURL: newUser.avatarURL,
       };
 
       res.status(201).json({
@@ -48,12 +51,13 @@ const usersController = {
         });
 
         res.status(200).json({
-        token,
-        user: {
-          email: user.email,
-          subscription: user.subscription,
-        },
-      });
+          token,
+          user: {
+            email: user.email,
+            subscription: user.subscription,
+            avatarURL: user.avatarURL,
+          },
+        });
       } else {
         return res.status(401).json({ message: "Email or password is wrong" });
       }
@@ -133,6 +137,30 @@ const usersController = {
       res.status(200).json(userWithoutPassword);
     } catch (error) {
       console.error("Error during getCurrentUser:", error);
+      next(error);
+    }
+  },
+  uploadAvatar: async (req, res, next) => {
+    try {
+      const userId = req.user.userId;
+      const avatar = await jimp.read(req.file.path);
+      await avatar.cover(250, 250);
+
+      const uniqueFileName = `${Date.now()}-${userId}${path.extname(
+        req.file.originalname
+      )}`;
+
+      const avatarSavePath = path.join("public", "avatars", uniqueFileName);
+      await avatar.writeAsync(avatarSavePath);
+
+      const avatarURL = `/avatars/${uniqueFileName}`;
+
+      await User.updateOne({ _id: userId }, { avatarURL });
+
+      res.status(200).json({
+        avatarURL: avatarURL,
+      });
+    } catch (error) {
       next(error);
     }
   },
