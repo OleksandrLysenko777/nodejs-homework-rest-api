@@ -1,5 +1,6 @@
 const { User, findUserByEmail, findUserById } = require("../models/userModel");
 const bcrypt = require("bcryptjs");
+const fs = require("fs/promises");
 const jwt = require("jsonwebtoken");
 const jimp = require("jimp");
 const path = require("path");
@@ -156,7 +157,7 @@ const usersController = {
       const avatarURL = `/avatars/${uniqueFileName}`;
 
       await User.updateOne({ _id: userId }, { avatarURL });
-
+      await fs.unlink(req.file.path);
       res.status(200).json({
         avatarURL: avatarURL,
       });
