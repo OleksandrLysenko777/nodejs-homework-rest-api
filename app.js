@@ -37,9 +37,11 @@ const authMiddleware = require("./validations/authMiddleware");
 app.use("/api/contacts", authMiddleware, contactsRouter);
 
 app.use("/users", usersRouter);
+console.log("Static directory:", path.join(__dirname, "public"));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use((req, res) => {
+  console.log("Path not found:", req.url); 
   res.status(404).json({ message: "Not found" });
 });
 

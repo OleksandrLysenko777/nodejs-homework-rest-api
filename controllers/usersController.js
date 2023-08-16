@@ -1,9 +1,27 @@
+const nodemailer = require("nodemailer");
+require("dotenv").config();
+
 const { User, findUserByEmail, findUserById } = require("../models/userModel");
 const bcrypt = require("bcryptjs");
 const fs = require("fs/promises");
 const jwt = require("jsonwebtoken");
 const jimp = require("jimp");
 const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: process.env.EMAIL_SECURE === "true",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: "ezlbvigdxjmxawzf",
+  },
+  tls: {
+    rejectUnauthorized: true,
+    minVersion: "TLSv1.2",
+  },
+});
 
 const usersController = {
   register: async (req, res, next) => {
@@ -15,10 +33,31 @@ const usersController = {
         return res.status(409).json({ message: "Email in use" });
       }
 
+      const verificationToken = uuidv4();
+      console.log("Generated verificationToken:", verificationToken);
+
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
       console.log("Hashed password:", hashedPassword);
-      const newUser = await User.create({ email, password });
+      console.log("Creating new user with data:", email, hashedPassword, verificationToken);
+      const newUser = await User.create({ email, password, verificationToken });
+ console.log("New user created:", newUser);
+      const verificationLink = `http://localhost:${process.env.PORT}/users/verify/${verificationToken}`;
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: newUser.email,
+        subject: "Email Verification",
+        text: `Click the following link to verify your email: ${verificationLink}`,
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error("Error sending email:", error);
+        } else {
+          console.log("Email sent:", info.response);
+        }
+      });
 
       const userWithoutPassword = {
         email: newUser.email,
@@ -163,6 +202,32 @@ const usersController = {
       });
     } catch (error) {
       next(error);
+    }
+  },
+  verifyUser: async (req, res) => {
+    const { verificationToken } = req.params;
+
+    try {
+      console.log("Verifying user with token:", verificationToken);
+      const user = await User.findOne({ verificationToken });
+
+      if (!user) {
+        console.log(
+          "User not found for verification token:",
+          verificationToken
+        );
+        return res.status(404).json({ message: "User not found" });
+      }
+      console.log("User found for verification:", user);
+      user.verify = true;
+      user.verificationToken = null;
+      await user.save();
+console.log("User verified and saved:", user);
+     
+      return res.status(200).json({ message: "Verification successful" });
+    } catch (error) {
+      console.error("Error verifying user:", error);
+      return res.status(500).json({ message: "Server error" });
     }
   },
 };
