@@ -1,9 +1,27 @@
+const nodemailer = require("nodemailer");
+require("dotenv").config();
+
 const { User, findUserByEmail, findUserById } = require("../models/userModel");
 const bcrypt = require("bcryptjs");
 const fs = require("fs/promises");
 const jwt = require("jsonwebtoken");
 const jimp = require("jimp");
 const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: process.env.EMAIL_SECURE === "true",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: "ezlbvigdxjmxawzf",
+  },
+  tls: {
+    rejectUnauthorized: true,
+    minVersion: "TLSv1.2",
+  },
+});
 
 const usersController = {
   register: async (req, res, next) => {
@@ -15,10 +33,30 @@ const usersController = {
         return res.status(409).json({ message: "Email in use" });
       }
 
+      const verificationToken = uuidv4();
+
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
       console.log("Hashed password:", hashedPassword);
-      const newUser = await User.create({ email, password });
+
+      const newUser = await User.create({ email, password, verificationToken });
+
+      const verificationLink = `http://localhost:${process.env.PORT}/users/verify/${verificationToken}`;
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: newUser.email,
+        subject: "Email Verification",
+        text: `Click the following link to verify your email: ${verificationLink}`,
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error("Error sending email:", error);
+        } else {
+          console.log("Email sent:", info.response);
+        }
+      });
 
       const userWithoutPassword = {
         email: newUser.email,
@@ -47,6 +85,10 @@ const usersController = {
       }
 
       if (password === user.password) {
+        if (!user.verify) {
+          return res.status(403).json({ message: "Email is not verified" });
+        }
+
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
           expiresIn: "7d",
         });
@@ -163,6 +205,72 @@ const usersController = {
       });
     } catch (error) {
       next(error);
+    }
+  },
+  verifyUser: async (req, res) => {
+    const { verificationToken } = req.params;
+
+    try {
+      const result = await User.updateOne(
+        { verificationToken },
+        { verify: true, verificationToken: null }
+      );
+
+      if (result.modifiedCount === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      return res.status(200).json({ message: "Verification successful" });
+    } catch (error) {
+      console.error("Error verifying user:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  },
+  resendVerificationEmail: async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "missing required field email" });
+    }
+
+    try {
+      const user = await User.findOne({ email });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.verify) {
+        return res
+          .status(400)
+          .json({ message: "Verification has already been passed" });
+      }
+
+      const verificationToken = user.verificationToken;
+
+      const verificationLink = `http://localhost:${process.env.PORT}/users/verify/${verificationToken}`;
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: "Email Verification",
+        text: `Click the following link to verify your email: ${verificationLink}`,
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error("Error sending verification email:", error);
+        } else {
+          console.log("Verification email sent:", info.response);
+        }
+      });
+
+      return res
+        .status(200)
+        .json({ message: "Verification email has been resent" });
+    } catch (error) {
+      console.error("Error resending verification email:", error);
+      return res.status(500).json({ message: "Server error" });
     }
   },
 };
